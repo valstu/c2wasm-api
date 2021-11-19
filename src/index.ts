@@ -8,6 +8,11 @@ import { z } from 'zod';
 
 const server = fastify();
 
+server.register(require('fastify-cors'), {
+  // put your options here
+  origin: '*'
+})
+
 // Compilation code
 const { llvmDir, tempDir, sysroot } = configs;
 
@@ -292,6 +297,7 @@ server.post('/api/build', async (req, reply) => {
   try {
     body = requestBodySchema.parse(req.body);
   } catch (err) {
+    console.log(err)
     return reply.code(400).send('400 Bad Request')
   }
   try {
