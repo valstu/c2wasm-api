@@ -5,13 +5,19 @@ import { deflateSync } from "zlib";
 import { dirname } from "path";
 import { execSync } from "child_process";
 import { z } from 'zod';
+import fastifyCors from 'fastify-cors';
+import fastifyWebSocket from 'fastify-websocket';
+import * as ws from 'ws';
+import * as rpc from 'vscode-ws-jsonrpc';
+import * as rpcServer from 'vscode-ws-jsonrpc/lib/server';
 
 const server = fastify();
 
-server.register(require('fastify-cors'), {
+server.register(fastifyCors, {
   // put your options here
   origin: '*'
 })
+server.register(fastifyWebSocket);
 
 // Compilation code
 const { llvmDir, tempDir, sysroot } = configs;
@@ -309,6 +315,40 @@ server.post('/api/build', async (req, reply) => {
   }
   // return reply.code(200).send({ hello: 'world' });
 });
+
+server.get('/', async (req, reply) => {
+  reply.code(200).send('ok')
+})
+
+function toSocket(webSocket: ws): rpc.IWebSocket {
+  return {
+    send: content => webSocket.send(content),
+    onMessage: cb => webSocket.onmessage = event => cb(event.data),
+    onError: cb => webSocket.onerror = event => {
+      if ('message' in event) {
+        cb((event as any).message)
+      }
+    },
+    onClose: cb => webSocket.onclose = event => cb(event.code, event.reason),
+    dispose: () => webSocket.close()
+  }
+}
+
+server.get('/language-server/c', { websocket: true }, (connection /* SocketStream */, req /* FastifyRequest */) => {
+  let localConnection = rpcServer.createServerProcess('Example', 'clangd', []);
+  let socket: rpc.IWebSocket = toSocket(connection.socket);
+  let newConnection = rpcServer.createWebSocketConnection(socket);
+  rpcServer.forward(newConnection, localConnection);
+  console.log(`Forwarding new client`);
+  socket.onClose((code, reason) => {
+    console.log('Client closed', reason);
+    localConnection.dispose();
+  });
+  // connection.socket.on('message', message => {
+  //   // message.toString() === 'hi from client'
+  //   connection.socket.send('hi from server')
+  // })
+})
 
 server.listen(process.env.PORT || 9000, process.env.HOST || '::', (err, address) => {
   if (err) {

@@ -63,3 +63,13 @@ Output contains compiled wasm file base64 encoded.
 
 - TODO: Add information about compression and base64
 - TODO: Add information about docker stuff
+
+## Push to Heroku
+
+Install Heroku CLI
+
+- Login to Heroku: `heroku login`
+- Login to Heroku Containers: `heroku container:login`
+- Build and push the image to Heroku: `heroku container:push web -a arcane-inlet-17120`
+- Release new version: ``
+  Run following commands

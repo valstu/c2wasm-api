@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 node:17-stretch
+FROM --platform=linux/amd64 vbarta/xrpl-hooks-compiler:1.0
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 # FROM node:16-alpine
